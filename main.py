@@ -135,4 +135,4 @@ custom_formatting = dp.Formatting(
   )
 
 # Create Difficulty Report
-dp.save_report(report_layout, path='Weekly_Market_Summary.html', formatting=custom_formatting)
+dp.save_report(report_layout, path='Weekly_Market_Update.html', formatting=custom_formatting)
