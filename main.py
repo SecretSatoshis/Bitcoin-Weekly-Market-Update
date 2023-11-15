@@ -81,10 +81,12 @@ styled_equities_performance_table_dp = dp.Table(styled_equities_performance_tabl
 bucket_counts_df = data_format.calculate_price_buckets(data, 5000)
 bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$5K']
 bucket_counts_df = data_format.style_bucket_counts_table(bucket_counts_df)
+bucket_counts_df.to_csv("5k_bucket_table.csv")
 trading_range_table = dp.Table(bucket_counts_df)
 
 # Creating trading range table $1000
 bucket_counts_df = data_format.calculate_price_buckets(data, 1000)
+bucket_counts_df.to_csv("1k_bucket_table.csv")
 plotly_dp_chart = data_format.create_price_buckets_chart(bucket_counts_df)
 
 # Create ROI Table
