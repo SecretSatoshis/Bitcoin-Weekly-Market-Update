@@ -590,6 +590,7 @@ def monthly_heatmap(data):
   month_names = [calendar.month_abbr[i] for i in range(1, 13)] + ['Yearly']
   heatmap_data.columns = month_names
   heatmap_data.index = heatmap_data.index.astype(str)  # Convert index to string for Plotly
+  heatmap_data.to_csv('monthly_heatmap_data.csv')
 
   # Flatten the heatmap data for text annotations
   text_values = heatmap_data.applymap(lambda x: f"{x:.2%}" if pd.notnull(x) else '').values
@@ -648,6 +649,7 @@ def weekly_heatmap(data, last_n_years=5):
   # Convert indices and columns to strings for Plotly
   heatmap_data.columns = heatmap_data.columns.astype(str)
   heatmap_data.index = heatmap_data.index.astype(str)
+  heatmap_data.to_csv('weekly_heatmap_data.csv')
 
   # Flatten the heatmap data for text annotations
   text_values = heatmap_data.applymap(lambda x: f"{x:.2%}" if pd.notnull(x) else '').values
@@ -762,7 +764,7 @@ def calculate_roi_table(data, price_column='PriceUSD'):
       'Start Date': start_dates.values(),
       'BTC Price': btc_prices.values()
   })
-
+  roi_table.to_csv("roi_table.csv")
   return roi_table.set_index('Time Frame')
 
 def calculate_ma_table(data, price_column='PriceUSD'):
@@ -791,6 +793,7 @@ def calculate_ma_table(data, price_column='PriceUSD'):
   }
   ma_table = pd.DataFrame.from_dict(ma_data, orient='index')
   ma_table.index.name = 'Moving Average'
+  ma_table.to_csv("ma_table.csv")
   return ma_table[['Price', '7 Day % Change']]
 
 def style_roi_table(roi_table):
