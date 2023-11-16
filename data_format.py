@@ -1050,23 +1050,23 @@ def create_ohlc_chart(ohlc_data, report_data, chart_template):
     latest_ohlc = ohlc_data.iloc[-1]
 
     annotation_text_price = (
-        f"Latest Weekly Candle:\n"
-        f"Open: ${latest_ohlc['Open']:.2f}\n"
-        f"High: ${latest_ohlc['High']:.2f}\n"
-        f"Low: ${latest_ohlc['Low']:.2f}\n"
+        f"Latest Weekly Candle:<br>"
+        f"Open: ${latest_ohlc['Open']:.2f}<br>"
+        f"High: ${latest_ohlc['High']:.2f}<br>"
+        f"Low: ${latest_ohlc['Low']:.2f}<br>"
         f"Close: ${latest_ohlc['Close']:.2f}"
     )
     annotation_text_support = (
-        f"Support Levels:\n"
-        f"Realized Price: ${latest_data['realised_price']:.2f}\n"
-        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}\n"
+        f"Support Levels:<br>"
+        f"Realized Price: ${latest_data['realised_price']:.2f}<br>"
+        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}<br>"
         f"200 Week MA: ${latest_data['200_week_ma_priceUSD']:.2f}"
     )
     annotation_text_resistance = (
-        f"Resistance Levels:\n"
-        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}\n"
-        f"3x Realized Price: ${latest_data['realizedcap_multiple_3']:.2f}\n"
-        f"32x Thermocap Price: ${latest_data['thermocap_multiple_32']:.2f}\n"
+        f"Resistance Levels:<br>"
+        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}<br>"
+        f"3x Realized Price: ${latest_data['realizedcap_multiple_3']:.2f}<br>"
+        f"32x Thermocap Price: ${latest_data['thermocap_multiple_32']:.2f}<br>"
         f"5x Realized Price: ${latest_data['realizedcap_multiple_5']:.2f}"
     )
     
