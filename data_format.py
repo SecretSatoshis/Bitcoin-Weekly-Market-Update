@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import datapane as dp
+from plotly.io import write_image
+
 
 def get_coinmetrics_onchain(endpoint):
   url = f'https://raw.githubusercontent.com/coinmetrics/data/master/csv/{endpoint}'
@@ -515,7 +517,6 @@ def calculate_price_buckets(data, bucket_size):
   bucket_counts_df['Price Range ($)'] = bucket_counts_df['Price Range ($)'].apply(
       lambda x: f"${int(x.left/1000)}K-${int(x.right/1000)}K"
   )
-
   return bucket_counts_df
 
 def style_bucket_counts_table(bucket_counts_df):
@@ -724,6 +725,9 @@ def plot_yoy_change(data, column_name):
   ax1.legend(lines + lines2, labels + labels2, loc='upper left')
 
   #plt.tight_layout()  # Adjust the plot to ensure a tight fit
+  # Save the plot as a PNG file
+  png_filename = 'log_return_yoy.png'
+  fig.savefig(png_filename)
 
   dp.Plot(fig)
 
@@ -1041,9 +1045,83 @@ def create_ohlc_chart(ohlc_data, report_data, chart_template):
     # Add watermark
     fig.add_annotation(xref="paper", yref="paper", x=0.5, y=0.5, text="SecretSatoshis.com",
                        showarrow=False, font=dict(size=50, color="rgba(128, 128, 128, 0.5)"), align="center")
+    # Extract the latest data point for each metric
+    latest_data = report_data.iloc[-1]
+    latest_ohlc = ohlc_data.iloc[-1]
 
+    annotation_text_price = (
+        f"Latest Weekly Candle:\n"
+        f"Open: ${latest_ohlc['Open']:.2f}\n"
+        f"High: ${latest_ohlc['High']:.2f}\n"
+        f"Low: ${latest_ohlc['Low']:.2f}\n"
+        f"Close: ${latest_ohlc['Close']:.2f}"
+    )
+    annotation_text_support = (
+        f"Support Levels:\n"
+        f"Realized Price: ${latest_data['realised_price']:.2f}\n"
+        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}\n"
+        f"200 Week MA: ${latest_data['200_week_ma_priceUSD']:.2f}"
+    )
+    annotation_text_resistance = (
+        f"Resistance Levels:\n"
+        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}\n"
+        f"3x Realized Price: ${latest_data['realizedcap_multiple_3']:.2f}\n"
+        f"32x Thermocap Price: ${latest_data['thermocap_multiple_32']:.2f}\n"
+        f"5x Realized Price: ${latest_data['realizedcap_multiple_5']:.2f}"
+    )
+    
+    # Define the annotation properties
+    annotation_props_price = dict(
+        xref="paper", yref="paper",
+        x=0.02, y=0.98,  # Position (top left corner)
+        xanchor="left", yanchor="top",
+        text=annotation_text_price,
+        showarrow=False,
+        align="left",
+        bordercolor="#c7c7c7",
+        borderwidth=2,
+        bgcolor="lightgrey",
+        opacity=0.5,  # Set opacity to 0.5
+        font=dict(family="Arial", size=11)
+    )
+
+    annotation_props_support = dict(
+        xref="paper", yref="paper",
+        x=0.12, y=0.98,  # Position (top left corner)
+        xanchor="left", yanchor="top",
+        text=annotation_text_support,
+        showarrow=False,
+        align="left",
+        bordercolor="#c7c7c7",
+        borderwidth=2,
+        bgcolor="lightgrey",
+        opacity=0.5,  # Set opacity to 0.5
+        font=dict(family="Arial", size=11)
+    )
+
+    annotation_props_resistance = dict(
+        xref="paper", yref="paper",
+        x=0.30, y=0.98,  # Position (top left corner)
+        xanchor="left", yanchor="top",
+        text=annotation_text_resistance,
+        showarrow=False,
+        align="left",
+        bordercolor="#c7c7c7",
+        borderwidth=2,
+        bgcolor="lightgrey",
+        opacity=0.5,  # Set opacity to 0.5
+        font=dict(family="Arial", size=11)
+    )
+
+    # Add the annotation to the figure
+    fig.add_annotation(annotation_props_price)
+    fig.add_annotation(annotation_props_support)
+    fig.add_annotation(annotation_props_resistance)
     # Save the chart as an HTML file
     dp_chart = dp.Plot(fig)
+    # Save the chart as a PNG file
+    png_filename = f"ohlc_chart.png"
+    fig.write_image(png_filename,width=1600, height=900)  # scale parameter to increase image resolution
 
     # Return the figure
     return dp_chart
