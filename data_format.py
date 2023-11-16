@@ -1087,7 +1087,7 @@ def create_ohlc_chart(ohlc_data, report_data, chart_template):
 
     annotation_props_support = dict(
         xref="paper", yref="paper",
-        x=0.12, y=0.98,  # Position (top left corner)
+        x=0.15, y=0.98,  # Position (top left corner)
         xanchor="left", yanchor="top",
         text=annotation_text_support,
         showarrow=False,
@@ -1101,7 +1101,7 @@ def create_ohlc_chart(ohlc_data, report_data, chart_template):
 
     annotation_props_resistance = dict(
         xref="paper", yref="paper",
-        x=0.30, y=0.98,  # Position (top left corner)
+        x=0.33, y=0.98,  # Position (top left corner)
         xanchor="left", yanchor="top",
         text=annotation_text_resistance,
         showarrow=False,
