@@ -642,20 +642,20 @@ def weekly_heatmap(data, last_n_years=5):
   start_date = datetime.now() - pd.DateOffset(years=last_n_years)
   data_last_n_years = data.loc[start_date:]
 
-  # Calculate weekly returns
-  weekly_returns = data_last_n_years['PriceUSD'].resample('W').last().pct_change()
-  
+  # Calculate weekly returns including the current partial week
+  weekly_returns = data_last_n_years['PriceUSD'].resample('W').ffill().pct_change()
+
   # Group by week and year
   grouped = weekly_returns.groupby([weekly_returns.index.isocalendar().week, weekly_returns.index.isocalendar().year])
 
-  # Check if the 53rd week is present and if it should be included
+  # Exclude the 53rd week if not present in all years
   if len(grouped.get_group((53, )) if (53, ) in grouped.groups else []) < last_n_years:
       weekly_returns = weekly_returns[weekly_returns.index.isocalendar().week != 53]
 
-  # Note: .unstack() should bring weeks to the y-axis, and years to the x-axis
+  # Heatmap data
   heatmap_data = weekly_returns.groupby([weekly_returns.index.isocalendar().week, weekly_returns.index.isocalendar().year]).mean().unstack()
 
-  # Calculate the average return for each week and append it as a last 'Average' column
+  # Calculate the average return for each week
   heatmap_data['Average'] = heatmap_data.mean(axis=1)
   
   # Current and past week number
@@ -677,7 +677,7 @@ def weekly_heatmap(data, last_n_years=5):
   # Convert supplemental data to DataFrame and save to CSV
   supplemental_df = pd.DataFrame([supplemental_data])
   supplemental_df.to_csv('supplemental_data_weekly_heatmap.csv', index=False)
-
+  
   # Convert indices and columns to strings for Plotly
   heatmap_data.columns = heatmap_data.columns.astype(str)
   heatmap_data.index = heatmap_data.index.astype(str)
@@ -711,7 +711,6 @@ def weekly_heatmap(data, last_n_years=5):
       width=800,
       height=800,
       margin=dict(l=10, r=10, t=50, b=50)  # Adjust the margin values as needed
-
   )
   dp_chart = dp.Plot(fig)
   # Return the Plotly figure
