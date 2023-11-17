@@ -14,7 +14,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import datapane as dp
 from plotly.io import write_image
-
+import matplotlib.dates as mdates
+import mplfinance as mpf
 
 def get_coinmetrics_onchain(endpoint):
   url = f'https://raw.githubusercontent.com/coinmetrics/data/master/csv/{endpoint}'
