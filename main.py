@@ -90,7 +90,7 @@ bucket_counts_df.to_csv("1k_bucket_table.csv")
 plotly_dp_chart = data_format.create_price_buckets_chart(bucket_counts_df)
 
 # Create ROI Table
-roi_table = data_format.calculate_roi_table(data)
+roi_table = data_format.calculate_roi_table(data,report_date)
 roi_table = data_format.style_roi_table(roi_table)
 roi_table = dp.Table(roi_table)
 
