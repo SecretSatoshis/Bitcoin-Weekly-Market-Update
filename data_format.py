@@ -1124,51 +1124,51 @@ def create_ohlc_chart(ohlc_data, report_data, chart_template):
     # Return the figure
     return dp_chart
   
-  def create_ohlc_chart_matplotlib(ohlc_data, report_data, chart_template):
-  # Convert 'Time' to a format suitable for Matplotlib
-  ohlc_data['Time'] = pd.to_datetime(ohlc_data['Time'])
-  ohlc_data.set_index('Time', inplace=True)
-
-  # Prepare the OHLC data for mplfinance
-  ohlc = ohlc_data[['Open', 'High', 'Low', 'Close']]
-
-  # Create a new figure and axes
-  fig, ax = plt.subplots(figsize=(16, 9))
-  report_data = report_data[(report_data.index >= '2017-09-01')]
-  # Plot candlestick chart using mplfinance
-  mpf.plot(ohlc, type='candle', ax=ax, style='charles', show_nontrading=True)
-  # Set y-axis to logarithmic scaled
-  ax.set_yscale('log')
-  # Get the latest data point
-  latest_data = report_data.iloc[-1]
-
-  # Plot additional data like moving averages with dynamic labels
-  ax.plot(report_data.index, report_data['200_week_ma_priceUSD'], label=f'200 Week MA: {latest_data["200_week_ma_priceUSD"]:.2f}')
-  ax.plot(report_data.index, report_data['realised_price'], label=f'Realized Price: {latest_data["realised_price"]:.2f}')
-  ax.plot(report_data.index, report_data['realizedcap_multiple_3'], label=f'3x Realized Price: {latest_data["realizedcap_multiple_3"]:.2f}')
-  ax.plot(report_data.index, report_data['realizedcap_multiple_5'], label=f'5x Realized Price: {latest_data["realizedcap_multiple_5"]:.2f}')
-  ax.plot(report_data.index, report_data['thermocap_multiple_8'], label=f'8x Thermocap Price: {latest_data["thermocap_multiple_8"]:.2f}')
-  ax.plot(report_data.index, report_data['thermocap_multiple_16'], label=f'16x Thermocap Price: {latest_data["thermocap_multiple_16"]:.2f}')
-  ax.plot(report_data.index, report_data['thermocap_multiple_32'], label=f'32x Thermocap Price: {latest_data["thermocap_multiple_32"]:.2f}')
-
-  # Add event annotations and lines
-  if 'events' in chart_template:
-      for event in chart_template['events']:
-          event_dates = pd.to_datetime(event['dates'])
-          for date in event_dates:
-              ax.axvline(x=date, color="black", linestyle="--")
-              ax.annotate(event['name'], xy=(mdates.date2num(date), ax.get_ylim()[0]), xytext=(10,0), 
-                          textcoords='offset points', arrowprops=dict(arrowstyle='->'))
-
-  # Customize the chart
-  ax.set_title(chart_template['title'])
-  ax.set_xlabel(chart_template['x_label'])
-  ax.set_ylabel(chart_template['y1_label'])
-  ax.legend()
-  ax.xaxis_date()  # Set x-axis to display dates
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-  ax.grid(True)
-
-  # Save the chart
-  plt.savefig("ohlc_chart.png",dpi=300)
-
+def create_ohlc_chart_matplotlib(ohlc_data, report_data, chart_template):
+    # Convert 'Time' to a format suitable for Matplotlib
+    ohlc_data['Time'] = pd.to_datetime(ohlc_data['Time'])
+    ohlc_data.set_index('Time', inplace=True)
+  
+    # Prepare the OHLC data for mplfinance
+    ohlc = ohlc_data[['Open', 'High', 'Low', 'Close']]
+  
+    # Create a new figure and axes
+    fig, ax = plt.subplots(figsize=(16, 9))
+    report_data = report_data[(report_data.index >= '2017-09-01')]
+    # Plot candlestick chart using mplfinance
+    mpf.plot(ohlc, type='candle', ax=ax, style='charles', show_nontrading=True)
+    # Set y-axis to logarithmic scaled
+    ax.set_yscale('log')
+    # Get the latest data point
+    latest_data = report_data.iloc[-1]
+  
+    # Plot additional data like moving averages with dynamic labels
+    ax.plot(report_data.index, report_data['200_week_ma_priceUSD'], label=f'200 Week MA: {latest_data["200_week_ma_priceUSD"]:.2f}')
+    ax.plot(report_data.index, report_data['realised_price'], label=f'Realized Price: {latest_data["realised_price"]:.2f}')
+    ax.plot(report_data.index, report_data['realizedcap_multiple_3'], label=f'3x Realized Price: {latest_data["realizedcap_multiple_3"]:.2f}')
+    ax.plot(report_data.index, report_data['realizedcap_multiple_5'], label=f'5x Realized Price: {latest_data["realizedcap_multiple_5"]:.2f}')
+    ax.plot(report_data.index, report_data['thermocap_multiple_8'], label=f'8x Thermocap Price: {latest_data["thermocap_multiple_8"]:.2f}')
+    ax.plot(report_data.index, report_data['thermocap_multiple_16'], label=f'16x Thermocap Price: {latest_data["thermocap_multiple_16"]:.2f}')
+    ax.plot(report_data.index, report_data['thermocap_multiple_32'], label=f'32x Thermocap Price: {latest_data["thermocap_multiple_32"]:.2f}')
+  
+    # Add event annotations and lines
+    if 'events' in chart_template:
+        for event in chart_template['events']:
+            event_dates = pd.to_datetime(event['dates'])
+            for date in event_dates:
+                ax.axvline(x=date, color="black", linestyle="--")
+                ax.annotate(event['name'], xy=(mdates.date2num(date), ax.get_ylim()[0]), xytext=(10,0), 
+                            textcoords='offset points', arrowprops=dict(arrowstyle='->'))
+  
+    # Customize the chart
+    ax.set_title(chart_template['title'])
+    ax.set_xlabel(chart_template['x_label'])
+    ax.set_ylabel(chart_template['y1_label'])
+    ax.legend()
+    ax.xaxis_date()  # Set x-axis to display dates
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    ax.grid(True)
+  
+    # Save the chart
+    plt.savefig("ohlc_chart.png",dpi=300)
+  
