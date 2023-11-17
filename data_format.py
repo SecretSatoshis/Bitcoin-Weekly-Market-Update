@@ -518,6 +518,16 @@ def calculate_price_buckets(data, bucket_size):
   bucket_counts_df['Price Range ($)'] = bucket_counts_df['Price Range ($)'].apply(
       lambda x: f"${int(x.left/1000)}K-${int(x.right/1000)}K"
   )
+  # Getting the current price and its bucket
+  current_price = data['PriceUSD'].iloc[-1]
+  current_bucket = pd.cut([current_price], bins=bucket_ranges)[0]
+  current_price_data = pd.DataFrame({
+      'Current Price (USD)': [current_price],
+      'Current Price Bucket': [f"${int(current_bucket.left/1000)}K-${int(current_bucket.right/1000)}K"]
+  })
+  # Saving the data to a CSV file
+  current_price_data.to_csv(f'supplemental_trading_range_data_{bucket_size}.csv', index=False)
+  
   return bucket_counts_df
 
 def style_bucket_counts_table(bucket_counts_df):
@@ -647,6 +657,26 @@ def weekly_heatmap(data, last_n_years=5):
 
   # Calculate the average return for each week and append it as a last 'Average' column
   heatmap_data['Average'] = heatmap_data.mean(axis=1)
+  
+  # Current and past week number
+  current_week = datetime.now().isocalendar().week
+  past_week = current_week - 1 if current_week > 1 else 52
+
+  # Next week number
+  next_week = current_week + 1 if current_week < 52 else 1
+
+  # Prepare supplemental data
+  supplemental_data = {
+      'Current Week Number': current_week,
+      'Next Week Number': next_week,
+      'Next Week Avg Return': heatmap_data['Average'].get(next_week, float('nan')),
+      'Past Week 5-Year Avg Return': heatmap_data['Average'].get(past_week, float('nan')),
+      'Current Week 5-Year Avg Return': heatmap_data['Average'].get(current_week, float('nan'))
+  }
+
+  # Convert supplemental data to DataFrame and save to CSV
+  supplemental_df = pd.DataFrame([supplemental_data])
+  supplemental_df.to_csv('supplemental_data_weekly_heatmap.csv', index=False)
 
   # Convert indices and columns to strings for Plotly
   heatmap_data.columns = heatmap_data.columns.astype(str)
@@ -734,7 +764,7 @@ def plot_yoy_change(data, column_name):
 
   return fig
 
-def calculate_roi_table(data, price_column='PriceUSD'):
+def calculate_roi_table(data, report_date, price_column='PriceUSD'):
   if price_column not in data.columns:
       raise ValueError(f"The price column '{price_column}' does not exist in the data.")
 
@@ -754,7 +784,7 @@ def calculate_roi_table(data, price_column='PriceUSD'):
       '10 Year': 3650
   }
 
-  today = pd.to_datetime('today').normalize()
+  today = pd.to_datetime(report_date).normalize()
 
   # Pre-compute the 'Start Date' and 'BTC Price' for each period
   start_dates = {period: today - pd.Timedelta(days=days) for period, days in periods.items()}
