@@ -29,7 +29,7 @@ market_data_start_date = '2010-01-01'
 stock_tickers = tickers['stocks']
 
 # Get today's date
-today = datetime.date.today()
+today = datetime.date(2023, 11, 12)
 
 # Get yesterday's date
 yesterday = today - datetime.timedelta(days=1)
