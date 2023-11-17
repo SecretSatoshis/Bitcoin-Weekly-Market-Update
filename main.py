@@ -114,6 +114,7 @@ yoy_plot = data_format.plot_yoy_change(report_data,"PriceUSD_365_change")
 
 # Creat OHLC Plot
 ohlc_plot = data_format.create_ohlc_chart(ohlc_data, report_data, chart_template)
+ohlc_plot_output = data_format.create_ohlc_chart_matplotlib(ohlc_data, report_data, chart_template)
 
 # Datapane Report Imports
 from datapane_report import generate_report_layout
