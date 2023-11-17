@@ -659,7 +659,7 @@ def weekly_heatmap(data, last_n_years=5):
   heatmap_data['Average'] = heatmap_data.mean(axis=1)
   
   # Current and past week number
-  current_week = datetime.now().isocalendar().week
+  current_week_number = datetime.now().isocalendar()[1]
   past_week = current_week - 1 if current_week > 1 else 52
 
   # Next week number
