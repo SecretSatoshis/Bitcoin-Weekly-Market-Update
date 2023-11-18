@@ -499,35 +499,48 @@ def create_btc_correlation_tables(report_date, tickers, correlations_data):
 
     return btc_correlations
 
-def create_price_buckets_chart(bucket_counts_df):
-  # Exclude the 0-1K range from the plotting data
-  plot_data = bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$1K'].copy()
+def calculate_price_buckets(data, bucket_size):
+  # Ensure the data index (presumed to be time) is sorted
+  data = data.sort_index(ascending=True)
 
-  # Convert the 'Price Range ($)' to a sortable numeric value
-  plot_data['Sort Key'] = plot_data['Price Range ($)'].apply(lambda x: int(x.split('-')[0][1:-1]))
+  # Define the bucket ranges for price intervals
+  bucket_ranges = pd.interval_range(start=0, end=(data['PriceUSD'].max() // bucket_size + 1) * bucket_size, freq=bucket_size)
 
-  # Sort the DataFrame by 'Sort Key' in descending order
-  plot_data = plot_data.sort_values(by='Sort Key', ascending=False)
+  # Assign each price to a bucket
+  data['PriceBucket'] = pd.cut(data['PriceUSD'], bins=bucket_ranges)
 
-  # Create the bar chart using Plotly
-  fig = px.bar(plot_data, y='Price Range ($)', x='Count',  # Change 'Days Count' to 'Count'
-               orientation='h',  # Makes the bars horizontal
-               color='Count',  # Use 'Count' as the color scale
-               color_continuous_scale='Viridis',  # Choose a color scale
-               title='Number of Days Bitcoin Traded within 1K Price Ranges')
+  # Calculate the number of unique index values (dates) in each bucket
+  bucket_days_count = data.groupby('PriceBucket').apply(lambda x: x.index.nunique())
 
-  # Update figure layout
-  fig.update_layout(
-      height=500,
-      width=800,
-      margin=dict(l=5, r=5, t=50, b=5)
+  # Getting the current price and its bucket
+  current_price = data['PriceUSD'].iloc[-1]
+  current_bucket = pd.cut([current_price], bins=bucket_ranges)[0]
+
+  # Extracting the count of days for the current price bucket
+  current_bucket_days = bucket_days_count[current_bucket]
+
+  # Create DataFrame for current price data with bucket and days count
+  current_price_data = pd.DataFrame({
+      'Current Bitcoin Price (USD)': [current_price],
+      f'Current {bucket_size} Price Bucket': [f"${int(current_bucket.left/1000)}K-${int(current_bucket.right/1000)}K"],
+      'Days in Current Bucket': [current_bucket_days]
+  })
+
+  # Saving the current price data to a CSV file
+  current_price_data.to_csv(f'supplemental_trading_range_data_{bucket_size}.csv', index=False)
+
+  # Count the number of entries in each bucket (not days)
+  bucket_counts = data['PriceBucket'].value_counts().sort_index()
+
+  # Create a DataFrame for the bucket counts
+  bucket_counts_df = bucket_counts.reset_index()
+  bucket_counts_df.columns = ['Price Range ($)', 'Count']
+  bucket_counts_df['Price Range ($)'] = bucket_counts_df['Price Range ($)'].apply(
+      lambda x: f"${int(x.left/1000)}K-${int(x.right/1000)}K"
   )
 
-  # Create a Datapane Plot object
-  dp_chart = dp.Plot(fig)
+  return bucket_counts_df
 
-  # Return the Datapane object
-  return dp_chart
 
 def style_bucket_counts_table(bucket_counts_df):
   # Define the style for the table: smaller font size
