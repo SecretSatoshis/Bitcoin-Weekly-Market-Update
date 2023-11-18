@@ -565,33 +565,34 @@ def style_bucket_counts_table(bucket_counts_df):
   return styled_table
 
 def create_price_buckets_chart(bucket_counts_df):
-  # Exclude the 0-1K range from the plotting data
-  plot_data = bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$1K']
+    # Exclude the 0-1K range from the plotting data
+    plot_data = bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$1K'].copy()
 
-  # Convert the 'Price Range ($)' to a sortable numeric value
-  # This assumes that the price ranges are formatted like '$0K-$1K', '$1K-$2K', etc.
-  plot_data['Sort Key'] = plot_data['Price Range ($)'].apply(lambda x: int(x.split('-')[0][1:-1]))
+    # Convert the 'Price Range ($)' to a sortable numeric value
+    plot_data['Sort Key'] = plot_data['Price Range ($)'].apply(lambda x: int(x.split('-')[0][1:-1]))
 
-  # Sort the DataFrame by 'Sort Key' in descending order
-  plot_data = plot_data.sort_values(by='Sort Key', ascending=False)
+    # Sort the DataFrame by 'Sort Key' in descending order
+    plot_data = plot_data.sort_values(by='Sort Key', ascending=False)
 
-  # Create the bar chart using Plotly
-  fig = px.bar(plot_data, y='Price Range ($)', x='Days Count',
-               orientation='h',  # Makes the bars horizontal
-               color='Days Count',  # Use 'Days Count' as the color scale
-               color_continuous_scale='Viridis',  # Choose a color scale
-               title='Number of Days Bitcoin Traded within 1K Price Ranges')
-  # Update figure layout
-  fig.update_layout(
-      height=500,
-      width=800,
-      margin=dict(l=5, r=5, t=50, b=5)
-  )
-  # Create a Datapane Plot object
-  dp_chart = dp.Plot(fig)
+    # Create the bar chart using Plotly
+    fig = px.bar(plot_data, y='Price Range ($)', x='Count',  # Change 'Days Count' to 'Count'
+                 orientation='h',  # Makes the bars horizontal
+                 color='Count',  # Use 'Count' as the color scale
+                 color_continuous_scale='Viridis',  # Choose a color scale
+                 title='Number of Days Bitcoin Traded within 1K Price Ranges')
 
-  # Return the Datapane object
-  return dp_chart
+    # Update figure layout
+    fig.update_layout(
+        height=500,
+        width=800,
+        margin=dict(l=5, r=5, t=50, b=5)
+    )
+
+    # Create a Datapane Plot object
+    dp_chart = dp.Plot(fig)
+
+    # Return the Datapane object
+    return dp_chart
 
 def monthly_heatmap(data):
   # Filter data to start from 2011
