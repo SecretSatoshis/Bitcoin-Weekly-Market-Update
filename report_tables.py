@@ -99,7 +99,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "BTC",
             "Price": report_data.loc[report_date, 'PriceUSD'],
             "Market Cap": report_data.loc[report_date, 'CapMrktCurUSD'],
-            "Trading Week Return": report_data.loc[report_date, 'PriceUSD_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'PriceUSD_trading_week_change'],
             "MTD": report_data.loc[report_date, 'PriceUSD_MTD_change'],
             "YTD": report_data.loc[report_date, 'PriceUSD_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'PriceUSD'],
@@ -108,7 +108,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "ETH",
             "Price": report_data.loc[report_date, 'ethereum_close'],
             "Market Cap": report_data.loc[report_date, 'ethereum_market_cap'],
-            "Trading Week Return": report_data.loc[report_date, 'ethereum_close_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'ethereum_close_trading_week_change'],
             "MTD": report_data.loc[report_date, 'ethereum_close_MTD_change'],
             "YTD": report_data.loc[report_date, 'ethereum_close_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'ethereum_close'],
@@ -117,7 +117,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "XRP",
             "Price": report_data.loc[report_date, 'ripple_close'],
             "Market Cap": report_data.loc[report_date, 'ripple_market_cap'],
-            "Trading Week Return": report_data.loc[report_date, 'ripple_close_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'ripple_close_trading_week_change'],
             "MTD": report_data.loc[report_date, 'ripple_close_MTD_change'],
             "YTD": report_data.loc[report_date, 'ripple_close_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'ripple_close'],
@@ -126,7 +126,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "DOGE",
             "Price": report_data.loc[report_date, 'dogecoin_close'],
             "Market Cap": report_data.loc[report_date, 'dogecoin_market_cap'],
-            "Trading Week Return": report_data.loc[report_date, 'dogecoin_close_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'dogecoin_close_trading_week_change'],
             "MTD": report_data.loc[report_date, 'dogecoin_close_MTD_change'],
             "YTD": report_data.loc[report_date, 'dogecoin_close_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'dogecoin_close'],
@@ -135,7 +135,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "BNB",
             "Price": report_data.loc[report_date, 'binancecoin_close'],
             "Market Cap": report_data.loc[report_date, 'binancecoin_market_cap'],
-            "Trading Week Return": report_data.loc[report_date, 'binancecoin_close_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'binancecoin_close_trading_week_change'],
             "MTD": report_data.loc[report_date, 'binancecoin_close_MTD_change'],
             "YTD": report_data.loc[report_date, 'binancecoin_close_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'binancecoin_close'],
@@ -144,7 +144,7 @@ def create_crypto_performance_table(report_data, data, report_date, correlation_
             "Asset": "USDT",
             "Price": report_data.loc[report_date, 'tether_close'],
             "Market Cap": report_data.loc[report_date, 'tether_market_cap'],
-            "Trading Week Return": report_data.loc[report_date, 'tether_close_trading_week_change'],
+            "Week To Date Return": report_data.loc[report_date, 'tether_close_trading_week_change'],
             "MTD": report_data.loc[report_date, 'tether_close_MTD_change'],
             "YTD": report_data.loc[report_date, 'tether_close_YTD_change'],
             "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'tether_close'],
@@ -165,7 +165,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Price":
           report_data.loc[report_date, 'PriceUSD'],
           #"Market Cap": report_data.loc[report_date, 'CapMrktCurUSD'],
-          "Trading Week Return":
+          "Week To Date Return":
           report_data.loc[report_date, 'PriceUSD_trading_week_change'],
           "MTD":
           report_data.loc[report_date, 'PriceUSD_MTD_change'],
@@ -179,7 +179,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Nasdaq",
           "Price": report_data.loc[report_date, '^IXIC_close'],
           #"Market Cap": data.loc['^IXIC_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, '^IXIC_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, '^IXIC_close_trading_week_change'],
           "MTD": report_data.loc[report_date, '^IXIC_close_MTD_change'],
           "YTD": report_data.loc[report_date, '^IXIC_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', '^IXIC_close'],
@@ -188,7 +188,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Asset": "S&P500",
           "Price": report_data.loc[report_date, '^GSPC_close'],
           #"Market Cap": data.loc['^GSPC_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, '^GSPC_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, '^GSPC_close_trading_week_change'],
           "MTD": report_data.loc[report_date, '^GSPC_close_MTD_change'],
           "YTD": report_data.loc[report_date, '^GSPC_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', '^GSPC_close'],
@@ -197,7 +197,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Asset": "XLF Financials ETF",
           "Price": report_data.loc[report_date, 'XLF_close'],
           #"Market Cap": data.loc['XLF_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, 'XLF_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'XLF_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'XLF_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'XLF_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'XLF_close'],
@@ -206,7 +206,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Asset": "XLE Energy ETF",
           "Price": report_data.loc[report_date, 'XLE_close'],
           #"Market Cap": data.loc['XLE_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, 'XLE_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'XLE_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'XLE_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'XLE_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'XLE_close'],
@@ -215,7 +215,7 @@ def create_index_performance_table(report_data, data, report_date, correlation_r
           "Asset": "FANG+ ETF",
           "Price": report_data.loc[report_date, 'FANG.AX_close'],
           #"Market Cap": data.loc['FANG.AX_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, 'FANG.AX_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'FANG.AX_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'FANG.AX_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'FANG.AX_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'FANG.AX_close'],
@@ -236,7 +236,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
           "Price":
           report_data.loc[report_date, 'PriceUSD'],
           #"Market Cap": report_data.loc[report_date, 'CapMrktCurUSD'],
-          "Trading Week Return":
+          "Week To Date Return":
           report_data.loc[report_date, 'PriceUSD_trading_week_change'],
           "MTD":
           report_data.loc[report_date, 'PriceUSD_MTD_change'],
@@ -248,7 +248,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
       "US Dollar Index": {
           "Asset": "US Dollar Index",
           "Price": report_data.loc[report_date, 'DX=F_close'],
-          "Trading Week Return": report_data.loc[report_date, 'DX=F_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'DX=F_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'DX=F_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'DX=F_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'DX=F_close'],
@@ -256,7 +256,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
       "Gold Futures": {
           "Asset": "Gold Futures",
           "Price": report_data.loc[report_date, 'GC=F_close'],
-          "Trading Week Return": report_data.loc[report_date, 'GC=F_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'GC=F_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'GC=F_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'GC=F_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'GC=F_close'],
@@ -264,7 +264,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
       "Crude Oil Futures": {
           "Asset": "Crude Oil Futures",
           "Price": report_data.loc[report_date, 'CL=F_close'],
-          "Trading Week Return": report_data.loc[report_date, 'CL=F_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'CL=F_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'CL=F_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'CL=F_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'CL=F_close'],
@@ -272,7 +272,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
       "20+ Year Treasury Bond ETF": {
           "Asset": "20+ Year Treasury Bond ETF",
           "Price": report_data.loc[report_date, 'TLT_close'],
-          "Trading Week Return": report_data.loc[report_date, 'TLT_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, 'TLT_close_trading_week_change'],
           "MTD": report_data.loc[report_date, 'TLT_close_MTD_change'],
           "YTD": report_data.loc[report_date, 'TLT_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', 'TLT_close'],
@@ -280,7 +280,7 @@ def create_macro_performance_table(report_data, data, report_date, correlation_r
       "Bloomberg Commodity Index": {
           "Asset": "Bloomberg Commodity Index",
           "Price": report_data.loc[report_date, '^BCOM_close'],
-          "Trading Week Return": report_data.loc[report_date, '^BCOM_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, '^BCOM_close_trading_week_change'],
           "MTD": report_data.loc[report_date, '^BCOM_close_MTD_change'],
           "YTD": report_data.loc[report_date, '^BCOM_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', '^BCOM_close'],
@@ -304,7 +304,7 @@ def create_equities_performance_table(report_data, data, report_date, correlatio
       "Asset": "Bitcoin",
       "Price": report_data.loc[report_date, 'PriceUSD'],
       "Market Cap": report_data.loc[report_date, 'CapMrktCurUSD'],
-      "Trading Week Return": report_data.loc[report_date, 'PriceUSD_trading_week_change'],
+      "Week To Date Return": report_data.loc[report_date, 'PriceUSD_trading_week_change'],
       "MTD": report_data.loc[report_date, 'PriceUSD_MTD_change'],
       "YTD": report_data.loc[report_date, 'PriceUSD_YTD_change'],
       "90 Day BTC Correlation": 1,  # Bitcoin's correlation with itself is always 1
@@ -316,7 +316,7 @@ def create_equities_performance_table(report_data, data, report_date, correlatio
           "Asset": equity,
           "Price": report_data.loc[report_date, f'{equity}_close'],
           "Market Cap": data.loc[report_date, f'{equity}_MarketCap'],
-          "Trading Week Return": report_data.loc[report_date, f'{equity}_close_trading_week_change'],
+          "Week To Date Return": report_data.loc[report_date, f'{equity}_close_trading_week_change'],
           "MTD": report_data.loc[report_date, f'{equity}_close_MTD_change'],
           "YTD": report_data.loc[report_date, f'{equity}_close_YTD_change'],
           "90 Day BTC Correlation": correlation_results['priceusd_90_days'].loc['PriceUSD', f'{equity}_close'],
@@ -341,7 +341,7 @@ def style_performance_table(performance_table):
       'Asset': '{}',
       'Price': '{:,.2f}',
       #"Market Cap": '{:.0f}',
-      'Trading Week Return': '{:.2%}',
+      'Week To Date Return': '{:.2%}',
       'MTD': '{:.2%}',
       'YTD': '{:.2%}',
       '90 Day BTC Correlation': '{:,.2f}'
@@ -356,7 +356,7 @@ def style_performance_table(performance_table):
     return 'color: %s' % color
 
   gradient_columns = [
-      'Trading Week Return', 'MTD', 'YTD', '90 Day BTC Correlation'
+      'Week To Date Return', 'MTD', 'YTD', '90 Day BTC Correlation'
   ]
 
   # Define the style for the table: smaller font size
