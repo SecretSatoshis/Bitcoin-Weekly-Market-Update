@@ -355,16 +355,16 @@ def calculate_trading_week_change(data):
   # Determine the Monday of the week for each date
   start_of_week = data.index - pd.to_timedelta(data.index.dayofweek, unit='d')
 
-  # Create a dictionary to map each date to the Monday of its week
-  monday_map = {date: monday for date, monday in zip(data.index, start_of_week)}
+  # Map each date to the Monday of its week
+  monday_map = {date: start_of_week_date for date, start_of_week_date in zip(data.index, start_of_week)}
 
-  # Initialize an empty DataFrame for week-to-date change
-  week_to_date_change = pd.DataFrame(index=data.index)
+  # Initialize an empty DataFrame for trading week change
+  trading_week_change = pd.DataFrame(index=data.index)
 
   # Get numeric columns
   numeric_cols = data.select_dtypes(include=[np.number]).columns
 
-  # Calculate the week-to-date change for each day
+  # Calculate the trading week change for each day
   for date in data.index:
       monday_of_week = monday_map[date]
       for col in numeric_cols:
@@ -372,12 +372,15 @@ def calculate_trading_week_change(data):
               monday_value = data.at[monday_of_week, col]
               current_value = data.at[date, col]
               if pd.notnull(monday_value) and pd.notnull(current_value):
-                  week_to_date_change.at[date, col] = (current_value - monday_value) / monday_value
+                  trading_week_change.at[date, col] = (current_value / monday_value) - 1
+
+  # Forward fill the NaN values with the last valid trading week change
+  trading_week_change.ffill(inplace=True)
 
   # Rename columns
-  week_to_date_change.columns = [f"{col}_trading_week_change" for col in week_to_date_change.columns]
+  trading_week_change.columns = [f"{col}_trading_week_change" for col in trading_week_change.columns]
 
-  return week_to_date_change
+  return trading_week_change
   
 def calculate_yoy_change(data):
   # Calculate the year-over-year change for each date in the index
