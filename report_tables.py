@@ -341,7 +341,7 @@ def style_performance_table(performance_table):
       'Asset': '{}',
       'Price': '{:,.2f}',
       #"Market Cap": '{:.0f}',
-      'Trading Week Return': '{:.2f}%',
+      'Trading Week Return': '{:.2%}',
       'MTD': '{:.2%}',
       'YTD': '{:.2%}',
       '90 Day BTC Correlation': '{:,.2f}'
