@@ -353,7 +353,7 @@ def calculate_mtd_change(data):
 
 def calculate_trading_week_change(data):
     # Get the Monday of the week for each date in the index
-    start_of_week = data.index.to_series().apply(lambda x: x - pd.Timedelta(days=x.weekday()))
+    start_of_week = data.index.to_series().apply(lambda x: x - pd.offsets.Week(weekday=0) + pd.DateOffset(days=1))
 
     # Initialize an empty DataFrame for weekly change
     weekly_change = pd.DataFrame(index=data.index)
