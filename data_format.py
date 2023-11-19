@@ -352,32 +352,33 @@ def calculate_mtd_change(data):
   return mtd_change
 
 def calculate_trading_week_change(data):
-  # Get the Monday of the week for each date in the index
-  start_of_week = data.index.to_series().apply(lambda x: x - pd.Timedelta(days=x.weekday()))
+    # Get the Monday of the week for each date in the index
+    start_of_week = data.index.to_series().apply(lambda x: x - pd.Timedelta(days=x.weekday()))
 
-  # Initialize an empty DataFrame for weekly change
-  weekly_change = pd.DataFrame(index=data.index)
+    # Initialize an empty DataFrame for weekly change
+    weekly_change = pd.DataFrame(index=data.index)
 
-  # Get numeric columns
-  numeric_cols = data.select_dtypes(include=[np.number]).columns
+    # Get numeric columns
+    numeric_cols = data.select_dtypes(include=[np.number]).columns
 
-  # Calculate the week-to-date change for each day
-  for date in data.index:
-      if date.weekday() < 5:  # Monday to Friday
-          if start_of_week[date] in data.index:  # If the start of the week is in the data
-              weekly_change.loc[date, numeric_cols] = data.loc[date, numeric_cols] / data.loc[start_of_week[date], numeric_cols] - 1
-      else:  # Saturday or Sunday
-          last_friday = date - pd.Timedelta(days=date.weekday() - 4)
-          if last_friday in weekly_change.index:  # If the last Friday is in the data
-              weekly_change.loc[date, numeric_cols] = weekly_change.loc[last_friday, numeric_cols]
+    # Calculate the week-to-date change for each day
+    for date in data.index:
+        if date.weekday() < 5:  # Monday to Friday
+            if start_of_week[date] in data.index:  # If the start of the week is in the data
+                weekly_change.loc[date, numeric_cols] = data.loc[date, numeric_cols] / data.loc[start_of_week[date], numeric_cols] - 1
+        else:  # Saturday or Sunday
+            # Use the data from the last trading day (Friday)
+            last_trading_day = date - pd.Timedelta(days=date.weekday() - 4)
+            if last_trading_day in data.index:
+                weekly_change.loc[date, numeric_cols] = data.loc[last_trading_day, numeric_cols] / data.loc[start_of_week[last_trading_day], numeric_cols] - 1
 
-  # Forward fill the NaN values with the last valid weekly change
-  weekly_change.ffill(inplace=True)
+    # Forward fill the NaN values with the last valid weekly change
+    weekly_change.ffill(inplace=True)
 
-  # Rename columns
-  weekly_change.columns = [f"{col}_trading_week_change" for col in weekly_change.columns]
+    # Rename columns
+    weekly_change.columns = [f"{col}_trading_week_change" for col in weekly_change.columns]
 
-  return weekly_change
+    return weekly_change
 
 def calculate_yoy_change(data):
   # Calculate the year-over-year change for each date in the index
