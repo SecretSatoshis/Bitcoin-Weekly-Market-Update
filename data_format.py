@@ -361,16 +361,11 @@ def calculate_trading_week_change(data):
     # Get numeric columns
     numeric_cols = data.select_dtypes(include=[np.number]).columns
 
-    # Calculate the week-to-date change for each day
+    # Calculate the week-to-date return for each day
     for date in data.index:
-        if date.weekday() < 5:  # Monday to Friday
-            if start_of_week[date] in data.index:  # If the start of the week is in the data
-                weekly_change.loc[date, numeric_cols] = data.loc[date, numeric_cols] / data.loc[start_of_week[date], numeric_cols] - 1
-        else:  # Saturday or Sunday
-            # Use the data from the last trading day (Friday)
-            last_trading_day = date - pd.Timedelta(days=date.weekday() - 4)
-            if last_trading_day in data.index:
-                weekly_change.loc[date, numeric_cols] = data.loc[last_trading_day, numeric_cols] / data.loc[start_of_week[last_trading_day], numeric_cols] - 1
+        # Ensure the start of the week is in the data
+        if start_of_week[date] in data.index:
+            weekly_change.loc[date, numeric_cols] = data.loc[date, numeric_cols] / data.loc[start_of_week[date], numeric_cols] - 1
 
     # Forward fill the NaN values with the last valid weekly change
     weekly_change.ffill(inplace=True)
