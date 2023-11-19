@@ -90,10 +90,10 @@ Explore our latest weekly market update data report, the data behind our <a href
 
   # Example headers for each section
   header_performance_tables1 = dp.Text("### Crypto & Stocks")
-  header_performance_tables2 = dp.Text("### Indexes & Macros")
+  header_performance_tables2 = dp.Text("### Indexes & Macro")
   header_trading_range_section = dp.Text("### Bitcoin Price Trading Ranges")
   header_roi_ma_section = dp.Text("### Bitcoin Investment ROI & Price Moving Average Growth")
-  header_yoy_section = dp.Text("### Bitcoin Price Performacne Year Over Year")
+  header_yoy_section = dp.Text("### Bitcoin Price Performance Year Over Year")
   header_heatmap_section = dp.Text("### Bitcoin Price Performacne Heatmap")
   header_weekly_price_section = dp.Text("### Bitcoin Weekly Price Chart")
   header_definition = dp.Text("### Report Section Definitions")
