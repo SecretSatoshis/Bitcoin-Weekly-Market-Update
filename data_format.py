@@ -352,8 +352,11 @@ def calculate_mtd_change(data):
   return mtd_change
 
 def calculate_trading_week_change(data):
-    # Add a column to identify the Monday of the week for each date
-    data['start_of_week'] = data.index - pd.to_timedelta(data.index.dayofweek, unit='d')
+    # Determine the Monday of the week for each date
+    start_of_week = data.index - pd.to_timedelta(data.index.dayofweek, unit='d')
+
+    # Map each date to the Monday of its week
+    monday_map = {date: start_of_week_date for date, start_of_week_date in zip(data.index, start_of_week)}
 
     # Initialize an empty DataFrame for weekly change
     weekly_change = pd.DataFrame(index=data.index)
@@ -363,11 +366,13 @@ def calculate_trading_week_change(data):
 
     # Calculate the week-to-date return for each day
     for date in data.index:
-        # Get the Monday of the week for the current date
-        current_start_of_week = data.loc[date, 'start_of_week']
-
-        if current_start_of_week in data.index:  # If the start of the week is in the data
-            weekly_change.loc[date, numeric_cols] = data.loc[date, numeric_cols] / data.loc[current_start_of_week, numeric_cols] - 1
+        monday_of_week = monday_map[date]
+        if monday_of_week in data.index:
+            for col in numeric_cols:
+                monday_value = data.loc[monday_of_week, col]
+                current_value = data.loc[date, col]
+                if pd.notnull(monday_value) and pd.notnull(current_value):
+                    weekly_change.loc[date, col] = (current_value / monday_value) - 1
 
     # Forward fill the NaN values with the last valid weekly change
     weekly_change.ffill(inplace=True)
@@ -376,7 +381,6 @@ def calculate_trading_week_change(data):
     weekly_change.columns = [f"{col}_trading_week_change" for col in weekly_change.columns]
 
     return weekly_change
-
 def calculate_yoy_change(data):
   # Calculate the year-over-year change for each date in the index
   yoy_change = data.pct_change(periods=365)  # Assuming data is daily
