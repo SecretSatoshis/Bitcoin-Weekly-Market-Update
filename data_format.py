@@ -47,41 +47,42 @@ def get_bitcoin_dominance():
   print("Bitcoin Dominance Data Call Completed")
   return df
 
-def get_finnhub_ohlc(symbol, resolution, start_timestamp, end_timestamp):
-  url = 'https://finnhub.io/api/v1/crypto/candle'
+def get_kraken_ohlc(pair, interval, since):
+  url = 'https://api.kraken.com/0/public/OHLC'
   params = {
-      'symbol': symbol,
-      'resolution': resolution,
-      'from': start_timestamp,
-      'to': end_timestamp,
-      'token': 'cl7455hr01qsmhrtpsl0cl7455hr01qsmhrtpslg'  # Replace with your Finnhub API key
+      'pair': pair,
+      'interval': interval,
+      'since': since
   }
   response = requests.get(url, params=params)
 
   if response.status_code != 200:
-      print("Error fetching Finnhub data")
+      print("Error fetching Kraken data")
       print("Status Code:", response.status_code)
       print("Response:", response.text)
       return pd.DataFrame()
 
   data = response.json()
 
-  if data['s'] != 'ok':
-      print("Error in response data:", data['s'])
+  if 'error' in data and data['error']:
+      print("Error in response data:", data['error'])
       return pd.DataFrame()
 
-  # Create a DataFrame from the response
-  ohlc_data = pd.DataFrame({
-      'Time': pd.to_datetime(data['t'], unit='s'),
-      'Open': data['o'],
-      'High': data['h'],
-      'Low': data['l'],
-      'Close': data['c'],
-      'Volume': data['v']
-  })
+  # Extracting the relevant pair data (assuming the first key in 'result')
+  pair_key = list(data['result'].keys())[0]
+  ohlc_data = data['result'][pair_key]
 
-  print("Finnhub OHLC Data Call Completed")
-  return ohlc_data
+  # Create a DataFrame from the response
+  df = pd.DataFrame(ohlc_data, columns=['Time', 'Open', 'High', 'Low', 'Close', 'VWAP', 'Volume', 'Count'])
+  df['Time'] = pd.to_datetime(df['Time'], unit='s')
+
+  # Convert 'Open', 'High', 'Low', 'Close', 'VWAP', 'Volume' to float
+  float_cols = ['Open', 'High', 'Low', 'Close', 'VWAP', 'Volume']
+  df[float_cols] = df[float_cols].astype(float)
+
+  print("Kraken OHLC Data Call Completed")
+
+  return df
 
 def get_btc_trade_volume_14d():
   url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart'
