@@ -21,8 +21,7 @@ data = data_format.get_data(tickers, market_data_start_date)
 data = data_format.calculate_custom_on_chain_metrics(data)
 data = data_format.calculate_moving_averages(data, moving_avg_metrics)
 start_timestamp = int(pd.Timestamp('2017-01-01').timestamp())
-end_timestamp = int(pd.Timestamp(yesterday).timestamp())
-ohlc_data = data_format.get_finnhub_ohlc('BINANCE:BTCUSDT','W', start_timestamp, end_timestamp)
+ohlc_data = data_format.get_kraken_ohlc('XBTUSD', 10080, start_timestamp)
 
 # Forward fill the data for all columns
 data.ffill(inplace=True)
