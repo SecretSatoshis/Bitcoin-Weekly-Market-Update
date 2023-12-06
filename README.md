@@ -9,7 +9,7 @@
 6. [Output Overview](#output-overview)
 7. [Report Interface](#report-interface)
 8. [Data Sources](#data-sources)
-9. [Automation](#automated-report-udates-with-gitHub-actions)
+9. [Automation](#Automated-report-updates-with-gitHub-actions)
 10. [License](#license)
 
 ## Introduction
@@ -82,7 +82,7 @@ The project utilizes data from various sources. The data sources include:
   - [Website](https://finnhub.io/)
   - [API Documentation](https://finnhub.io/docs/api)
  
-## Automated Report Updates with GitHub Actions
+## Automated Report Updates With GitHub Actions
 
 The report is updated daily using a GitHub Actions workflow. 
 
