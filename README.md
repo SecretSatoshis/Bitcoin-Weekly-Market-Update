@@ -9,7 +9,8 @@
 6. [Output Overview](#output-overview)
 7. [Report Interface](#report-interface)
 8. [Data Sources](#data-sources)
-9. [License](#license)
+9. [Automation](#automated-report-udates-with-gitHub-actions)
+10. [License](#license)
 
 ## Introduction
 The Weekly Market Update is a Python project specifically designed to analyze Bitcoin and its weekly performance. It retrieves data from a variety of sources, processes this data, and generates an insightful report that includes Bitcoin performance metrics, market analysis, and on-chain indicators. This tool is particularly useful for investors and analysts seeking weekly insights into Bitcoin market trends.
