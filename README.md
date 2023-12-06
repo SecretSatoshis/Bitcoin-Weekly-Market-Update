@@ -80,6 +80,12 @@ The project utilizes data from various sources. The data sources include:
 - **Finnhub**
   - [Website](https://finnhub.io/)
   - [API Documentation](https://finnhub.io/docs/api)
+ 
+## Automated Report Updates with GitHub Actions
+
+The report is updated daily using a GitHub Actions workflow. 
+
+The workflow is scheduled to run every day at 16:10 UTC. It runs the `main.py` script, which generates the updated report. After running the script, the workflow stages, commits, and pushes the changes to the main branch of the repository. This way, the report is updated on a daily basis.
 
 ## License
 Distributed under the GNU GENERAL PUBLIC LICENSE. See `LICENSE` for more information.
