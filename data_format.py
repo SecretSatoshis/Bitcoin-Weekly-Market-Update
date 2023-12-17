@@ -16,6 +16,7 @@ import datapane as dp
 from plotly.io import write_image
 import matplotlib.dates as mdates
 import mplfinance as mpf
+import time
 
 def get_coinmetrics_onchain(endpoint):
   url = f'https://raw.githubusercontent.com/coinmetrics/data/master/csv/{endpoint}'
