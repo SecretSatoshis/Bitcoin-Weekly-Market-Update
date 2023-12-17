@@ -104,43 +104,65 @@ def get_btc_trade_volume_14d():
 def get_crypto_data(ticker_list):
   data = pd.DataFrame()
   for ticker in ticker_list:
-      try:
-          # CoinGecko endpoint to get historical data for a coin
-          url = f'https://api.coingecko.com/api/v3/coins/{ticker}/market_chart'
-          params = {
-              'vs_currency': 'usd',
-              'days': 'max',  # max signifies maximum data
-              'interval': 'daily'
-          }
-          response = requests.get(url, params=params)
-          response.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code
+      success = False
+      retries = 0
+      max_retries = 5  # Max number of retries
+      retry_delay = 60  # Initial delay in seconds (1 minute)
 
-          # Parse the JSON data
-          json_data = response.json()
-          prices = pd.DataFrame(json_data['prices'], columns=['time', f'{ticker}_close'])
-          volumes = pd.DataFrame(json_data['total_volumes'], columns=['time', f'{ticker}_volume'])
-          market_caps = pd.DataFrame(json_data['market_caps'], columns=['time', f'{ticker}_market_cap'])
+      while not success and retries < max_retries:
+          try:
+              # CoinGecko endpoint to get historical data for a coin
+              url = f'https://api.coingecko.com/api/v3/coins/{ticker}/market_chart'
+              params = {
+                  'vs_currency': 'usd',
+                  'days': 'max',
+                  'interval': 'daily'
+              }
+              response = requests.get(url, params=params)
+              response.raise_for_status()
 
-          # Convert the timestamp to datetime
-          prices['time'] = pd.to_datetime(prices['time'], unit='ms')
-          volumes['time'] = pd.to_datetime(volumes['time'], unit='ms')
-          market_caps['time'] = pd.to_datetime(market_caps['time'], unit='ms')
+              # Parse the JSON data
+              json_data = response.json()
+              prices = pd.DataFrame(json_data['prices'], columns=['time', f'{ticker}_close'])
+              volumes = pd.DataFrame(json_data['total_volumes'], columns=['time', f'{ticker}_volume'])
+              market_caps = pd.DataFrame(json_data['market_caps'], columns=['time', f'{ticker}_market_cap'])
 
-          # Merge the dataframes on the 'time' column
-          merged_data = pd.merge(prices, volumes, on='time')
-          merged_data = pd.merge(merged_data, market_caps, on='time')
+              # Convert the timestamp to datetime
+              prices['time'] = pd.to_datetime(prices['time'], unit='ms')
+              volumes['time'] = pd.to_datetime(volumes['time'], unit='ms')
+              market_caps['time'] = pd.to_datetime(market_caps['time'], unit='ms')
 
-          # Append to the main dataframe
-          if data.empty:
-              data = merged_data
-          else:
-              # We need to make sure that we align all the dataframes by 'time'
-              data = pd.merge(data, merged_data, on='time', how='outer')
+              # Merge the dataframes on the 'time' column
+              merged_data = pd.merge(prices, volumes, on='time')
+              merged_data = pd.merge(merged_data, market_caps, on='time')
 
-      except requests.HTTPError as http_err:
-          print(f"HTTP error occurred: {http_err}")  # Python 3.6
-      except Exception as err:
-          print(f"An error occurred: {err}")  # Python 3.6
+              # Append to the main dataframe
+              if data.empty:
+                  data = merged_data
+              else:
+                  data = pd.merge(data, merged_data, on='time', how='outer')
+
+              success = True
+
+          except requests.HTTPError as http_err:
+              if http_err.response.status_code == 429:
+                  print(f"Rate limit exceeded, retrying in {retry_delay} seconds...")
+                  time.sleep(retry_delay)
+                  retry_delay *= 2  # Exponential backoff
+                  retries += 1
+              else:
+                  print(f"HTTP error occurred: {http_err}")
+                  break  # Break the loop for non-429 HTTP errors
+          except Exception as err:
+              print(f"An error occurred: {err}")
+              break
+
+      if not success:
+          print(f"Failed to fetch data for {ticker} after {max_retries} retries.")
+          continue
+
+      # Delay between successful requests
+      time.sleep(1)  # Wait for 1 second before the next API call
 
   # Set 'time' as the index and resample to fill missing days
   data.set_index('time', inplace=True)
