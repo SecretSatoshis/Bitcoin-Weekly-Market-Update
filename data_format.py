@@ -116,7 +116,7 @@ def get_crypto_data(ticker_list):
               url = f'https://api.coingecko.com/api/v3/coins/{ticker}/market_chart'
               params = {
                   'vs_currency': 'usd',
-                  'days': 'max',
+                  'days': '365',
                   'interval': 'daily'
               }
               response = requests.get(url, params=params)
