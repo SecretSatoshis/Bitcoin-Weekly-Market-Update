@@ -200,7 +200,7 @@ def get_price(tickers, start_date):
 
 def get_marketcap(tickers, start_date):
   data = pd.DataFrame()
-    end_date = pd.to_datetime('today') - pd.Timedelta(days=1)  # Adjust to 'yesterday' to ensure data availability
+  end_date = pd.to_datetime('today') - pd.Timedelta(days=1)  # Adjust to 'yesterday' to ensure data availability
 
     for ticker in tickers['stocks']:
         stock = yf.Ticker(ticker)
