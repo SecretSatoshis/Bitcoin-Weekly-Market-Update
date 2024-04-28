@@ -202,24 +202,24 @@ def get_marketcap(tickers, start_date):
   data = pd.DataFrame()
   end_date = pd.to_datetime('today') - pd.Timedelta(days=1)  # Adjust to 'yesterday' to ensure data availability
 
-    for ticker in tickers['stocks']:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(start=start_date, end=end_date)
-        market_cap = stock.info['marketCap']
+  for ticker in tickers['stocks']:
+      stock = yf.Ticker(ticker)
+      hist = stock.history(start=start_date, end=end_date)
+      market_cap = stock.info['marketCap']
 
-        # Create a DataFrame for the market cap data
-        mc_data = pd.DataFrame({
-            'time': pd.date_range(start=start_date, end=end_date),
-            f'{ticker}_MarketCap': [market_cap] * len(pd.date_range(start=start_date, end=end_date))
-        })
+      # Create a DataFrame for the market cap data
+      mc_data = pd.DataFrame({
+          'time': pd.date_range(start=start_date, end=end_date),
+          f'{ticker}_MarketCap': [market_cap] * len(pd.date_range(start=start_date, end=end_date))
+      })
 
-        if data.empty:
-            data = mc_data
-        else:
-            data = pd.merge(data, mc_data, on='time', how='outer')
+      if data.empty:
+          data = mc_data
+      else:
+          data = pd.merge(data, mc_data, on='time', how='outer')
 
-    return data
-
+  return data
+  
 def calculate_custom_on_chain_metrics(data):
 # New Metrics Based On Coinmetrics Data
     data['mvrv_ratio'] = data['CapMrktCurUSD'] / data['CapRealUSD']
