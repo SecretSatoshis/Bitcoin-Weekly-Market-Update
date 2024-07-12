@@ -11,8 +11,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import data_format
 
 from data_definitions import (
-    tickers, market_data_start_date, moving_avg_metrics, yesterday, 
-    report_date, filter_data_columns, stats_start_date, correlation_data, 
+    tickers, market_data_start_date, moving_avg_metrics, report_date, 
+    filter_data_columns, stats_start_date, correlation_data, 
     metrics_template, chart_template
 )
 
@@ -21,11 +21,11 @@ data = data_format.get_data(tickers, market_data_start_date)
 data = data_format.calculate_custom_on_chain_metrics(data)
 data = data_format.calculate_moving_averages(data, moving_avg_metrics)
 start_timestamp = int(pd.Timestamp('2017-01-01').timestamp())
-ohlc_data = data_format.get_kraken_ohlc('XBTUSD', 10080, start_timestamp)
+ohlc_data = data_format.get_kraken_ohlc('XBTUSD', start_timestamp)
 
 # Forward fill the data for all columns
 data.ffill(inplace=True)
-data = data.loc[:yesterday]
+data = data.loc[:report_date]
 
 # Flatten the list of columns from the dictionary
 columns_to_keep = [item for sublist in filter_data_columns.values() for item in sublist]
@@ -104,6 +104,10 @@ table_fig = dp.Table(table_df)
 table_df = table_df.data
 table_df.to_csv('fundamentals_valuation_table.csv', index=False)
 
+# Create OHLC Table
+latest_weekly_ohlc = data_format.calculate_weekly_ohlc(ohlc_data)
+print(latest_weekly_ohlc)
+
 # Creat Heat Maps
 plotly_monthly_heatmap_chart = data_format.monthly_heatmap(data)
 plotly_weekly_heatmap_chart = data_format.weekly_heatmap(data)
@@ -137,4 +141,4 @@ custom_formatting = dp.Formatting(
   )
 
 # Create Difficulty Report
-dp.save_report(report_layout, path='Weekly_Market_Update.html', formatting=custom_formatting)
+dp.save_report(report_layout, path='Weekly_Market_Summary.html', formatting=custom_formatting)
