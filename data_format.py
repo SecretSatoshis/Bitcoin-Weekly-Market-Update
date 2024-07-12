@@ -17,7 +17,9 @@ from plotly.io import write_image
 import matplotlib.dates as mdates
 import mplfinance as mpf
 import time
+from pandas.tseries.offsets import MonthEnd
 import yfinance as yf
+
 
 def get_coinmetrics_onchain(endpoint):
   url = f'https://raw.githubusercontent.com/coinmetrics/data/master/csv/{endpoint}'
@@ -49,40 +51,61 @@ def get_bitcoin_dominance():
   print("Bitcoin Dominance Data Call Completed")
   return df
 
-def get_kraken_ohlc(pair, interval, since):
+def get_kraken_ohlc(pair, since):
+  interval = 1440  # Daily data, interval specified in minutes
   url = 'https://api.kraken.com/0/public/OHLC'
-  params = {
-      'pair': pair,
-      'interval': interval,
-      'since': since
-  }
-  response = requests.get(url, params=params)
+  df = pd.DataFrame()  # Initialize an empty DataFrame to store all fetched data
 
-  if response.status_code != 200:
-      print("Error fetching Kraken data")
-      print("Status Code:", response.status_code)
-      print("Response:", response.text)
-      return pd.DataFrame()
+  while True:
+      params = {
+          'pair': pair,
+          'interval': interval,
+          'since': since
+      }
+      response = requests.get(url, params=params)
+      if response.status_code != 200:
+          print("Error fetching Kraken data:", response.status_code)
+          break
 
-  data = response.json()
+      data = response.json()
+      if 'error' in data and data['error']:
+          print("Error in response data:", data['error'])
+          break
 
-  if 'error' in data and data['error']:
-      print("Error in response data:", data['error'])
-      return pd.DataFrame()
+      pair_key = list(data['result'].keys())[0]
+      ohlc_data = data['result'][pair_key]
+      last = data['result']['last']  # Timestamp to use for the next request
 
-  # Extracting the relevant pair data (assuming the first key in 'result')
-  pair_key = list(data['result'].keys())[0]
-  ohlc_data = data['result'][pair_key]
+      # Convert the current chunk to DataFrame and append it to the main DataFrame
+      temp_df = pd.DataFrame(ohlc_data, columns=['Time', 'Open', 'High', 'Low', 'Close', 'VWAP', 'Volume', 'Count'])
+      temp_df['Time'] = pd.to_datetime(temp_df['Time'], unit='s', utc=True)
+      df = pd.concat([df, temp_df])
 
-  # Create a DataFrame from the response
-  df = pd.DataFrame(ohlc_data, columns=['Time', 'Open', 'High', 'Low', 'Close', 'VWAP', 'Volume', 'Count'])
-  df['Time'] = pd.to_datetime(df['Time'], unit='s')
+      # Update 'since' to the 'last' timestamp returned by the API
+      since = last
 
-  # Convert 'Open', 'High', 'Low', 'Close', 'VWAP', 'Volume' to float
+      # Check if the fetched data is less than 720, indicating we've reached the available data limit
+      if len(ohlc_data) < 720:
+          break
+
+      # Respect the API's rate limit
+      time.sleep(1)
+
+  # Once all data is fetched, set 'Time' as the index and convert columns to the correct data type
+  df.set_index('Time', inplace=True)
   float_cols = ['Open', 'High', 'Low', 'Close', 'VWAP', 'Volume']
   df[float_cols] = df[float_cols].astype(float)
 
-  print("Kraken OHLC Data Call Completed")
+  # Optionally, resample the data to weekly OHLC candles
+  df = df.resample('W-SUN').agg({
+      'Open': 'first',
+      'High': 'max',
+      'Low': 'min',
+      'Close': 'last',
+      'VWAP': 'mean',
+      'Volume': 'sum',
+      'Count': 'sum'
+  })
 
   return df
 
@@ -219,7 +242,7 @@ def get_marketcap(tickers, start_date):
           data = pd.merge(data, mc_data, on='time', how='outer')
 
   return data
-  
+
 def calculate_custom_on_chain_metrics(data):
 # New Metrics Based On Coinmetrics Data
     data['mvrv_ratio'] = data['CapMrktCurUSD'] / data['CapRealUSD']
@@ -257,7 +280,7 @@ def calculate_custom_on_chain_metrics(data):
     data['illiquid_supply'] = ((data['supply_pct_1_year_plus'] / 100) *data['SplyCur'])
     data['liquid_supply'] = (data['SplyCur'] - data['illiquid_supply'])
     data['pct_supply_issued'] = (data['SplyCur'] /21000000)
-    data['pct_fee_of_reward'] = (data['FeeTotUSD'] / (data['RevUSD']))
+    data['pct_fee_of_reward'] = (data['FeeTotUSD'] / (data['RevUSD'])) * 100
 
     print("Custom Metrics Created")
     return data
@@ -378,12 +401,15 @@ def calculate_trading_week_change(data):
   # Calculate the trading week change for each day
   for date in data.index:
       monday_of_week = monday_map[date]
-      for col in numeric_cols:
-          if monday_of_week in data.index:
+      if monday_of_week in data.index:
+          for col in numeric_cols:
               monday_value = data.at[monday_of_week, col]
               current_value = data.at[date, col]
-              if pd.notnull(monday_value) and pd.notnull(current_value):
+              # Ensure both values are not NaN and monday_value is not zero before dividing
+              if pd.notnull(monday_value) and pd.notnull(current_value) and monday_value != 0:
                   trading_week_change.at[date, col] = (current_value / monday_value) - 1
+              else:
+                  trading_week_change.at[date, col] = np.nan
 
   # Forward fill the NaN values with the last valid trading week change
   trading_week_change.ffill(inplace=True)
@@ -555,7 +581,6 @@ def calculate_price_buckets(data, bucket_size):
 
   return bucket_counts_df
 
-
 def style_bucket_counts_table(bucket_counts_df):
   # Define the style for the table: smaller font size
   table_style = [
@@ -579,34 +604,34 @@ def style_bucket_counts_table(bucket_counts_df):
   return styled_table
 
 def create_price_buckets_chart(bucket_counts_df):
-    # Exclude the 0-1K range from the plotting data
-    plot_data = bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$1K'].copy()
+  # Exclude the 0-1K range from the plotting data
+  plot_data = bucket_counts_df[bucket_counts_df['Price Range ($)'] != '$0K-$1K'].copy()
 
-    # Convert the 'Price Range ($)' to a sortable numeric value
-    plot_data['Sort Key'] = plot_data['Price Range ($)'].apply(lambda x: int(x.split('-')[0][1:-1]))
+  # Convert the 'Price Range ($)' to a sortable numeric value
+  plot_data['Sort Key'] = plot_data['Price Range ($)'].apply(lambda x: int(x.split('-')[0][1:-1]))
 
-    # Sort the DataFrame by 'Sort Key' in descending order
-    plot_data = plot_data.sort_values(by='Sort Key', ascending=False)
+  # Sort the DataFrame by 'Sort Key' in descending order
+  plot_data = plot_data.sort_values(by='Sort Key', ascending=False)
 
-    # Create the bar chart using Plotly
-    fig = px.bar(plot_data, y='Price Range ($)', x='Count',  # Change 'Days Count' to 'Count'
-                 orientation='h',  # Makes the bars horizontal
-                 color='Count',  # Use 'Count' as the color scale
-                 color_continuous_scale='Viridis',  # Choose a color scale
-                 title='Number of Days Bitcoin Traded within 1K Price Ranges')
+  # Create the bar chart using Plotly
+  fig = px.bar(plot_data, y='Price Range ($)', x='Count',  # Change 'Days Count' to 'Count'
+               orientation='h',  # Makes the bars horizontal
+               color='Count',  # Use 'Count' as the color scale
+               color_continuous_scale='Viridis',  # Choose a color scale
+               title='Number of Days Bitcoin Traded within 1K Price Ranges')
 
-    # Update figure layout
-    fig.update_layout(
-        height=500,
-        width=800,
-        margin=dict(l=5, r=5, t=50, b=5)
-    )
+  # Update figure layout
+  fig.update_layout(
+      height=500,
+      width=800,
+      margin=dict(l=5, r=5, t=50, b=5)
+  )
 
-    # Create a Datapane Plot object
-    dp_chart = dp.Plot(fig)
+  # Create a Datapane Plot object
+  dp_chart = dp.Plot(fig)
 
-    # Return the Datapane object
-    return dp_chart
+  # Return the Datapane object
+  return dp_chart
 
 def monthly_heatmap(data):
   # Filter data to start from 2011
@@ -622,18 +647,24 @@ def monthly_heatmap(data):
   # Add the yearly returns as an additional '13th' month for each year
   heatmap_data[13] = yearly_returns.groupby(yearly_returns.index.year).mean()
 
+  # Exclude the current month from the average calculation if it has not completed
+  last_date = data.index[-1]
+  if last_date != last_date + MonthEnd(0):  # If not the end of the month
+      heatmap_data = heatmap_data.drop(labels=str(last_date.year), axis=1, errors='ignore')
+
   # Add the average return for each month at the bottom
   heatmap_data.loc['Average'] = heatmap_data.mean(axis=0)
 
   # Replace month numbers with names for better readability
   month_names = [calendar.month_abbr[i] for i in range(1, 13)] + ['Yearly']
   heatmap_data.columns = month_names
+
+  # Ensure the index is properly formatted for plotting
   heatmap_data.index = heatmap_data.index.astype(str)  # Convert index to string for Plotly
   heatmap_data.to_csv('monthly_heatmap_data.csv')
 
   # Flatten the heatmap data for text annotations
   text_values = heatmap_data.applymap(lambda x: f"{x:.2%}" if pd.notnull(x) else '').values
-  # Define the traditional red-yellow-green colorscale
 
   # Create Plotly figure
   fig = go.Figure(data=go.Heatmap(
@@ -654,9 +685,9 @@ def monthly_heatmap(data):
       title="Bitcoin Monthly & Yearly Returns Heatmap",
       xaxis_nticks=36,
       yaxis_nticks=24,
-      autosize=False,  # This can be set to False if you want to define custom width and height
-      width=1200,  # Custom width (in pixels)
-      height=600,  # Custom height (in pixels)
+      autosize=False,
+      width=1200,
+      height=600,
   )
 
   dp_chart = dp.Plot(fig)
@@ -672,40 +703,17 @@ def weekly_heatmap(data, last_n_years=5):
   # Calculate weekly returns including the current partial week
   weekly_returns = data_last_n_years['PriceUSD'].resample('W').ffill().pct_change()
 
-  # Group by week and year
-  grouped = weekly_returns.groupby([weekly_returns.index.isocalendar().week, weekly_returns.index.isocalendar().year])
-
-  # Exclude the 53rd week if not present in all years
-  if len(grouped.get_group((53, )) if (53, ) in grouped.groups else []) < last_n_years:
-      weekly_returns = weekly_returns[weekly_returns.index.isocalendar().week != 53]
+  # Exclude the current week from the average calculation if it has not completed
+  current_year, current_week, _ = datetime.now().isocalendar()
+  if datetime.now().date() <= data.index[-1].date():
+      weekly_returns = weekly_returns.drop(weekly_returns[weekly_returns.index.isocalendar().week == current_week].index, errors='ignore')
 
   # Heatmap data
   heatmap_data = weekly_returns.groupby([weekly_returns.index.isocalendar().week, weekly_returns.index.isocalendar().year]).mean().unstack()
 
   # Calculate the average return for each week
   heatmap_data['Average'] = heatmap_data.mean(axis=1)
-  
-  # Current and past week number
-  current_week = datetime.now().isocalendar()[1]
-  past_week = current_week - 1 if current_week > 1 else 52
 
-  # Next week number
-  next_week = current_week + 1 if current_week < 52 else 1
-
-  # Prepare supplemental data
-  supplemental_data = {
-      'Todays Date': data.index[-1],
-      'Current Week Number': current_week,
-      'Next Week Number': next_week,
-      'Next Week Avg Return': heatmap_data['Average'].get(next_week, float('nan')),
-      'Past Week 5-Year Avg Return': heatmap_data['Average'].get(past_week, float('nan')),
-      'Current Week 5-Year Avg Return': heatmap_data['Average'].get(current_week, float('nan'))
-  }
-
-  # Convert supplemental data to DataFrame and save to CSV
-  supplemental_df = pd.DataFrame([supplemental_data])
-  supplemental_df.to_csv('supplemental_data_weekly_heatmap.csv', index=False)
-  
   # Convert indices and columns to strings for Plotly
   heatmap_data.columns = heatmap_data.columns.astype(str)
   heatmap_data.index = heatmap_data.index.astype(str)
@@ -716,13 +724,13 @@ def weekly_heatmap(data, last_n_years=5):
 
   # Create Plotly figure
   fig = go.Figure(data=go.Heatmap(
-      z=heatmap_data.values,  # Do not transpose values here
-      y=heatmap_data.index,   # Weeks are now on the y-axis
-      x=heatmap_data.columns, # Years are now on the x-axis
+      z=heatmap_data.values,
+      y=heatmap_data.index,
+      x=heatmap_data.columns,
       colorscale='RdYlGn',
-      zmin=-0.1,  # Set the minimum value for the colorscale
-      zmax=0.1,   # Set the maximum value for the colorscale
-      zmid=0,     # Set the midpoint for the colorscale to 0
+      zmin=-0.1,
+      zmax=0.1,
+      zmid=0,
       text=text_values,
       hoverinfo="text",
       texttemplate="%{text}"
@@ -734,15 +742,15 @@ def weekly_heatmap(data, last_n_years=5):
       xaxis_title="Years",
       yaxis_title="Weeks",
       xaxis_nticks=10,
-      yaxis_nticks=50,  # Adjust to the number of weeks in a year
+      yaxis_nticks=50,
       autosize=False,
       width=800,
       height=800,
-      margin=dict(l=10, r=10, t=50, b=50)  # Adjust the margin values as needed
+      margin=dict(l=10, r=10, t=50, b=50)
   )
-  dp_chart = dp.Plot(fig)
+
   # Return the Plotly figure
-  return dp_chart
+  return fig
 
 def plot_yoy_change(data, column_name):
   # Filter the data from 2012 onwards
@@ -1000,232 +1008,162 @@ def create_metrics_table(df, metrics_template):
   return styled_table
 
 def create_ohlc_chart(ohlc_data, report_data, chart_template):
+  # Convert index to tz-naive for comparison, if necessary
+  ohlc_data.index = ohlc_data.index.tz_localize(None)
+  report_data.index = report_data.index.tz_localize(None)
+  
   # Unpack variables from the chart template
-    title = chart_template['title']
-    x_label = chart_template['x_label']
-    y_label = chart_template['y1_label']
-    filename = chart_template['filename']
+  title = chart_template['title']
+  x_label = chart_template['x_label']
+  y_label = chart_template['y1_label']
+  filename = chart_template['filename']
 
-    # Create an OHLC chart
-    fig = go.Figure(data=[go.Candlestick(x=ohlc_data['Time'],
-                                         open=ohlc_data['Open'],
-                                         high=ohlc_data['High'],
-                                         low=ohlc_data['Low'],
-                                         close=ohlc_data['Close'],
-                                         name=f'Weekly Price')])
-    # Add the Moving Average to the chart
-    report_data = report_data[(report_data.index >= '2017-09-01')]
-    fig.add_trace(go.Scatter(x=report_data.index, y=report_data['200_week_ma_priceUSD'], mode='lines', name=f'200 Week MA'))
-    # Add additional traces for each metric
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['realised_price'], 
-        mode='lines', 
-        name='Realized Price'
-    ))
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['realizedcap_multiple_3'], 
-        mode='lines', 
-        name='3x Realized Price'
-    ))
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['realizedcap_multiple_5'], 
-        mode='lines', 
-        name='5x Realized Price'
-    ))
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['thermocap_multiple_8'], 
-        mode='lines', 
-        name='8x Thermocap Price'
-    ))
-  
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['thermocap_multiple_16'], 
-        mode='lines', 
-        name='16x Thermocap Price'
-    ))
-    fig.add_trace(go.Scatter(
-        x=report_data.index, 
-        y=report_data['thermocap_multiple_32'], 
-        mode='lines', 
-        name='32x Thermocap Price'
-    ))
-  
-    # Update the layout of the figure with various styling options
-    fig.update_layout(
-        title=dict(text=title, x=0.5, xanchor='center', y=0.95),
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        yaxis=dict(showgrid=False, type='log', autorange=True),
-        plot_bgcolor='rgba(255, 255, 255, 1)',
-        xaxis=dict(showgrid=False,
-                  tickformat='%B-%d-%Y',
-                  rangeslider_visible=False,
-                  rangeselector=dict(buttons=list([
-                       dict(count=1, label="1m", step="month", stepmode="backward"),
-                       dict(count=6, label="6m", step="month", stepmode="backward"),
-                       dict(count=1, label="YTD", step="year", stepmode="todate"),
-                       dict(count=1, label="1y", step="year", stepmode="backward"),
-                       dict(count=2, label="2y", step="year", stepmode="backward"),
-                       dict(count=3, label="3y", step="year", stepmode="backward"),
-                       dict(count=5, label="5y", step="year", stepmode="backward"),
-                       dict(step="all")
-                   ])),
-                  autorange=True),
-        hovermode='x',
-        autosize=True,
-        legend=dict(orientation='h', yanchor='bottom', y=-0.23, xanchor='center', x=0.5),
-        template='plotly_white',
-        updatemenus=[
-            go.layout.Updatemenu(buttons=list([
-                dict(label="Y1-axis: Linear", method="relayout", args=["yaxis.type", "linear"]),
-                dict(label="Y1-axis: Log", method="relayout", args=["yaxis.type", "log"]),
-            ]), showactive=False, type="buttons", direction="right", x=-0.1, xanchor="left", y=-0.25, yanchor="top")
-        ],
-        width=1400,
-        height=700,
-        margin=dict(l=50, r=50, b=50, t=50, pad=50),
-        font=dict(family="PT Sans Narrow", size=14, color="black")
-    )
+  # Create an OHLC chart
+  fig = go.Figure(data=[go.Candlestick(x=ohlc_data.index,
+                                       open=ohlc_data['Open'],
+                                       high=ohlc_data['High'],
+                                       low=ohlc_data['Low'],
+                                       close=ohlc_data['Close'],
+                                       name='Weekly Price')])
 
-    # Add event annotations and lines, similar to line chart template
-    if 'events' in chart_template:
-        for event in chart_template['events']:
-            event_dates = pd.to_datetime(event['dates'])
-            for date in event_dates:
-                fig.add_vline(x=date.timestamp() * 1000, line=dict(color="black", width=1, dash="dash"))
-                fig.add_annotation(x=date, y=0.5, text=event['name'], showarrow=False, yref="paper")
+  # Adjust the report_data to match the OHLC data's date range
+  report_data_filtered = report_data[(report_data.index >= ohlc_data.index.min()) & (report_data.index <= ohlc_data.index.max())]
 
-    # Add watermark
-    fig.add_annotation(xref="paper", yref="paper", x=0.5, y=0.5, text="SecretSatoshis.com",
-                       showarrow=False, font=dict(size=50, color="rgba(128, 128, 128, 0.5)"), align="center")
-    # Extract the latest data point for each metric
-    latest_data = report_data.iloc[-1]
-    latest_ohlc = ohlc_data.iloc[-1]
+  # Add the Moving Average and other metrics to the chart, using filtered report_data
+  metrics = ['200_week_ma_priceUSD', 'realised_price', 'realizedcap_multiple_3', 'realizedcap_multiple_5', 'thermocap_multiple_8', 'thermocap_multiple_16', 'thermocap_multiple_32']
+  for metric in metrics:
+      if metric in report_data_filtered.columns:
+          fig.add_trace(go.Scatter(x=report_data_filtered.index, y=report_data_filtered[metric], mode='lines', name=metric))
 
-    annotation_text_price = (
-        f"Latest Weekly Candle:<br>"
-        f"Open: ${latest_ohlc['Open']:.2f}<br>"
-        f"High: ${latest_ohlc['High']:.2f}<br>"
-        f"Low: ${latest_ohlc['Low']:.2f}<br>"
-        f"Close: ${latest_ohlc['Close']:.2f}"
-    )
-    annotation_text_support = (
-        f"Support Levels:<br>"
-        f"Realized Price: ${latest_data['realised_price']:.2f}<br>"
-        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}<br>"
-        f"200 Week MA: ${latest_data['200_week_ma_priceUSD']:.2f}"
-    )
-    annotation_text_resistance = (
-        f"Resistance Levels:<br>"
-        f"16x Thermocap Price: ${latest_data['thermocap_multiple_16']:.2f}<br>"
-        f"3x Realized Price: ${latest_data['realizedcap_multiple_3']:.2f}<br>"
-        f"32x Thermocap Price: ${latest_data['thermocap_multiple_32']:.2f}<br>"
-        f"5x Realized Price: ${latest_data['realizedcap_multiple_5']:.2f}"
-    )
-    
-    # Define the annotation properties
-    annotation_props_price = dict(
-        xref="paper", yref="paper",
-        x=0.02, y=0.98,  # Position (top left corner)
-        xanchor="left", yanchor="top",
-        text=annotation_text_price,
-        showarrow=False,
-        align="left",
-        bordercolor="#c7c7c7",
-        borderwidth=2,
-        bgcolor="lightgrey",
-        opacity=0.5,  # Set opacity to 0.5
-        font=dict(family="Arial", size=11)
-    )
+  # Update the layout of the figure with various styling options
+  fig.update_layout(
+      title=dict(text=title, x=0.5, xanchor='center', y=0.95),
+      xaxis=dict(
+          title=x_label,
+          showgrid=False,
+          tickformat='%B-%d-%Y',
+          rangeslider_visible=False,
+          rangeselector=dict(
+              buttons=list([
+                  dict(count=1, label="1m", step="month", stepmode="backward"),
+                  dict(count=6, label="6m", step="month", stepmode="backward"),
+                  dict(count=1, label="YTD", step="year", stepmode="todate"),
+                  dict(count=1, label="1y", step="year", stepmode="backward"),
+                  dict(count=2, label="2y", step="year", stepmode="backward"),
+                  dict(count=3, label="3y", step="year", stepmode="backward"),
+                  dict(count=5, label="5y", step="year", stepmode="backward"),
+                  dict(step="all")
+              ])
+          ),
+          range=[ohlc_data.index.min(), ohlc_data.index.max()]  # Limit the x-axis to the OHLC data's date range
+      ),
+      yaxis=dict(title=y_label, showgrid=False, type='log', autorange=True),
+      plot_bgcolor='rgba(255, 255, 255, 1)',
+      hovermode='x',
+      autosize=True,
+      legend=dict(orientation='h', yanchor='bottom', y=-0.23, xanchor='center', x=0.5),
+      template='plotly_white',
+      updatemenus=[
+          dict(buttons=list([
+              dict(label="Y1-axis: Linear", method="relayout", args=["yaxis.type", "linear"]),
+              dict(label="Y1-axis: Log", method="relayout", args=["yaxis.type", "log"]),
+          ]), direction="right", x=-0.1, xanchor="left", y=-0.25, yanchor="top")
+      ],
+      width=1400,
+      height=700,
+      margin=dict(l=50, r=50, b=50, t=50, pad=50),
+      font=dict(family="PT Sans Narrow", size=14, color="black")
+  )
 
-    annotation_props_support = dict(
-        xref="paper", yref="paper",
-        x=0.15, y=0.98,  # Position (top left corner)
-        xanchor="left", yanchor="top",
-        text=annotation_text_support,
-        showarrow=False,
-        align="left",
-        bordercolor="#c7c7c7",
-        borderwidth=2,
-        bgcolor="lightgrey",
-        opacity=0.5,  # Set opacity to 0.5
-        font=dict(family="Arial", size=11)
-    )
+  # Add event annotations and lines, similar to line chart template
+  if 'events' in chart_template:
+      for event in chart_template['events']:
+          event_dates = pd.to_datetime(event['dates'])
+          for date in event_dates:
+              if ohlc_data.index.min() <= date <= ohlc_data.index.max():  # Only add events within the OHLC data's date range
+                  fig.add_vline(x=date.timestamp() * 1000, line=dict(color="black", width=1, dash="dash"))
+                  fig.add_annotation(x=date, y=0.5, text=event['name'], showarrow=False, yref="paper")
 
-    annotation_props_resistance = dict(
-        xref="paper", yref="paper",
-        x=0.33, y=0.98,  # Position (top left corner)
-        xanchor="left", yanchor="top",
-        text=annotation_text_resistance,
-        showarrow=False,
-        align="left",
-        bordercolor="#c7c7c7",
-        borderwidth=2,
-        bgcolor="lightgrey",
-        opacity=0.5,  # Set opacity to 0.5
-        font=dict(family="Arial", size=11)
-    )
+  # Add watermark
+  fig.add_annotation(xref="paper", yref="paper", x=0.5, y=0.5, text="SecretSatoshis.com",
+                     showarrow=False, font=dict(size=50, color="rgba(128, 128, 128, 0.5)"), align="center")
 
-    # Add the annotation to the figure
-    fig.add_annotation(annotation_props_price)
-    fig.add_annotation(annotation_props_support)
-    fig.add_annotation(annotation_props_resistance)
-    # Save the chart as an HTML file
-    dp_chart = dp.Plot(fig)
-    
-    # Return the figure
-    return dp_chart
-  
+  # Return the figure
+  return fig
+
 def create_ohlc_chart_matplotlib(ohlc_data, report_data, chart_template):
-    # Convert 'Time' to a format suitable for Matplotlib
-    ohlc_data['Time'] = pd.to_datetime(ohlc_data['Time'])
-    ohlc_data.set_index('Time', inplace=True)
-  
-    # Prepare the OHLC data for mplfinance
-    ohlc = ohlc_data[['Open', 'High', 'Low', 'Close']]
-  
-    # Create a new figure and axes
-    fig, ax = plt.subplots(figsize=(16, 9))
-    report_data = report_data[(report_data.index >= '2017-09-01')]
-    # Plot candlestick chart using mplfinance
-    mpf.plot(ohlc, type='candle', ax=ax, style='charles', show_nontrading=True)
-    # Set y-axis to logarithmic scaled
-    ax.set_yscale('log')
-    # Get the latest data point
-    latest_data = report_data.iloc[-1]
-  
-    # Plot additional data like moving averages with dynamic labels
-    ax.plot(report_data.index, report_data['200_week_ma_priceUSD'], label=f'200 Week MA: {latest_data["200_week_ma_priceUSD"]:.2f}')
-    ax.plot(report_data.index, report_data['realised_price'], label=f'Realized Price: {latest_data["realised_price"]:.2f}')
-    ax.plot(report_data.index, report_data['realizedcap_multiple_3'], label=f'3x Realized Price: {latest_data["realizedcap_multiple_3"]:.2f}')
-    ax.plot(report_data.index, report_data['realizedcap_multiple_5'], label=f'5x Realized Price: {latest_data["realizedcap_multiple_5"]:.2f}')
-    ax.plot(report_data.index, report_data['thermocap_multiple_8'], label=f'8x Thermocap Price: {latest_data["thermocap_multiple_8"]:.2f}')
-    ax.plot(report_data.index, report_data['thermocap_multiple_16'], label=f'16x Thermocap Price: {latest_data["thermocap_multiple_16"]:.2f}')
-    ax.plot(report_data.index, report_data['thermocap_multiple_32'], label=f'32x Thermocap Price: {latest_data["thermocap_multiple_32"]:.2f}')
-  
-    # Add event annotations and lines
-    if 'events' in chart_template:
-        for event in chart_template['events']:
-            event_dates = pd.to_datetime(event['dates'])
-            for date in event_dates:
-                ax.axvline(x=date, color="black", linestyle="--")
-                ax.annotate(event['name'], xy=(mdates.date2num(date), ax.get_ylim()[0]), xytext=(10,0), 
-                            textcoords='offset points', arrowprops=dict(arrowstyle='->'))
-  
-    # Customize the chart
-    ax.set_title(chart_template['title'])
-    ax.set_xlabel(chart_template['x_label'])
-    ax.set_ylabel(chart_template['y1_label'])
-    ax.legend()
-    ax.xaxis_date()  # Set x-axis to display dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    ax.grid(True)
-  
-    # Save the chart
-    plt.savefig("ohlc_chart.png",dpi=300)
-  
+  # Ensure indices are tz-naive for comparison
+  ohlc_data.index = ohlc_data.index.tz_localize(None)
+  report_data.index = report_data.index.tz_localize(None)
+
+  # Filter report_data to match the OHLC data's date range
+  report_data_filtered = report_data[(report_data.index >= ohlc_data.index.min()) & (report_data.index <= ohlc_data.index.max())]
+
+  report_data_filtered = report_data_filtered.reindex(ohlc_data.index).ffill()
+
+  # Prepare additional plots to overlay on the mplfinance plot
+  add_plots = [
+      mpf.make_addplot(report_data_filtered['200_week_ma_priceUSD'], color='blue', width=2, label='200 Week MA'),
+      mpf.make_addplot(report_data_filtered['realised_price'], color='green', width=2, label='Realized Price'),
+      mpf.make_addplot(report_data_filtered['realizedcap_multiple_3'], color='orange', width=2, label='3x Realized Price'),
+      mpf.make_addplot(report_data_filtered['realizedcap_multiple_5'], color='red', width=2, label='5x Realized Price'),
+      mpf.make_addplot(report_data_filtered['thermocap_multiple_8'], color='purple', width=2, label='8x Thermocap Price'),
+      mpf.make_addplot(report_data_filtered['thermocap_multiple_16'], color='brown', width=2, label='16x Thermocap Price'),
+      mpf.make_addplot(report_data_filtered['thermocap_multiple_32'], color='gray', width=2, label='32x Thermocap Price')
+  ]
+
+  # Configuring mplfinance plot
+  s = mpf.make_mpf_style(base_mpf_style='charles', rc={'font.family': 'serif'})
+
+  # Handling events within mplfinance
+  alines = []
+  if 'events' in chart_template:
+      for event in chart_template['events']:
+          event_dates = pd.to_datetime(event['dates'])
+          for date in event_dates:
+              if ohlc_data.index.min() <= date <= ohlc_data.index.max():
+                  alines.append([(date, report_data_filtered['200_week_ma_priceUSD'].min()), (date, report_data_filtered['200_week_ma_priceUSD'].max())])
+
+  # Plotting the OHLC chart with the additional lines and event markers
+  mpf.plot(ohlc_data,
+           type='candle',
+           addplot=add_plots,
+           style=s,
+           title=chart_template['title'],
+           figratio=(16,9),
+           volume=False,
+           alines=dict(alines=alines, colors=['black'], linewidths=[1]),
+           savefig=chart_template['filename'])
+
+def calculate_weekly_ohlc(ohlc_data, output_file='weekly_ohlc.csv'):
+  """
+  Calculate the latest weekly OHLC (Open, High, Low, Close) candle and save it as a CSV file.
+
+  Parameters:
+  - ohlc_data (pd.DataFrame): DataFrame containing the OHLC data with columns ['Open', 'High', 'Low', 'Close'].
+  - output_file (str): The name of the output CSV file.
+
+  Returns:
+  - pd.DataFrame: DataFrame containing the latest weekly OHLC values.
+  """
+  # Ensure the index is a datetime index
+  ohlc_data.index = pd.to_datetime(ohlc_data.index)
+
+  # Resample to get the weekly OHLC values
+  weekly_ohlc = ohlc_data.resample('W').agg({
+      'Open': 'first',
+      'High': 'max',
+      'Low': 'min',
+      'Close': 'last'
+  })
+
+  # Get the latest weekly OHLC values
+  latest_weekly_ohlc = weekly_ohlc.iloc[-1]
+
+  # Convert to a DataFrame for easy access
+  latest_weekly_ohlc_df = pd.DataFrame(latest_weekly_ohlc).T
+
+  # Save to CSV
+  latest_weekly_ohlc_df.to_csv(output_file)
+
+  return latest_weekly_ohlc_df
